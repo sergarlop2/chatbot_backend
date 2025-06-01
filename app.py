@@ -175,6 +175,6 @@ def get_pdf_document(filename: str):
     file_path = os.path.join(DOCS_FOLDER, filename)
     
     if not os.path.isfile(file_path) or not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=404, detail="Document not found or not a PDF")
+        raise HTTPException(status_code=404, detail="Document not found")
 
     return FileResponse(file_path, media_type="application/pdf", filename=filename)
