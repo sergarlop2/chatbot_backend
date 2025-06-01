@@ -12,13 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY download_models.py .
-COPY doc_load_pages.py .
+COPY load_docs.py .
 COPY docs/*.pdf docs/
 COPY .env .
 
 EXPOSE 8000
 
 RUN python3 download_models.py
-#RUN python3 doc_load_pages.py
+#RUN python3 load_docs.py
 #CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
 CMD ["tail", "-f", "/dev/null"]
