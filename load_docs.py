@@ -2,6 +2,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+import torch
 
 #EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
 #EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
@@ -73,7 +74,7 @@ for idx, chunk in enumerate(split_docs):
 # Create embeddings and persist in Chroma
 embedding = HuggingFaceEmbeddings(
     model_name=EMBEDDING_MODEL_NAME,
-    model_kwargs={"device": "cuda"},
+    model_kwargs={"device": str(torch.device("cuda" if torch.cuda.is_available() else "cpu"))},
     encode_kwargs={"normalize_embeddings": True} # better for cosine similarity
 )
 vectordb = Chroma.from_documents(

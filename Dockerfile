@@ -4,21 +4,20 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir -r requirements.txt
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY download_models.py .
 COPY load_docs.py .
-COPY docs/*.pdf docs/
+COPY docs ./docs
 COPY .env .
 
-EXPOSE 8000
+RUN python3 download_models.py && \
+    python3 load_docs.py
 
-RUN python3 download_models.py
-#RUN python3 load_docs.py
-#CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
-CMD ["tail", "-f", "/dev/null"]
+EXPOSE 5000
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
