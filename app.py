@@ -9,8 +9,11 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
+
+DOCS_FOLDER = "docs/"
 
 torch.manual_seed(42)
 
@@ -163,3 +166,15 @@ def create_completion(request: ChatRequest):
         response["sources"] = [doc.metadata for doc in docs]
    
     return response
+
+@app.get("/docs/{filename}")
+def get_pdf_document(filename: str):
+    if ".." in filename or filename.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    file_path = os.path.join(DOCS_FOLDER, filename)
+    
+    if not os.path.isfile(file_path) or not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=404, detail="Document not found or not a PDF")
+
+    return FileResponse(file_path, media_type="application/pdf", filename=filename)
