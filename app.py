@@ -3,17 +3,19 @@ import os
 import time
 import torch
 import uuid
+import shutil
 from dotenv import load_dotenv, find_dotenv
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain_community.document_loaders import PyPDFLoader 
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFacePipeline
 from fastapi import FastAPI, HTTPException
+from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
-
-DOCS_FOLDER = "docs/"
 
 torch.manual_seed(42)
 
@@ -21,9 +23,14 @@ torch.manual_seed(42)
 _ = load_dotenv(find_dotenv()) 
 HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
+DOCS_FOLDER = "docs/"
+PERSIST_DIR = "docs/chroma/"
+CHUNK_SIZE_PAGES = 5 # Number of pages per chunk
+CHUNK_OVERLAP_PAGES = int(0.2 * CHUNK_SIZE_PAGES) # 20% overlap
+
 LLAMA_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
-PERSIST_DIR = "docs/chroma/"
+
 CHAT_MODELS = {
     "llama-3.1-8b-instruct": {
         "id": "llama-3.1-8b-instruct",
@@ -43,6 +50,13 @@ class ChatRequest(BaseModel):
     messages: List[Message]
     stream: Optional[bool] = False
     use_rag: Optional[bool] = False
+
+class UploadResponse(BaseModel):
+    filename: str
+    message: str
+
+class DeleteResponse(BaseModel):
+    message: str
 
 # Load the embedding model from HuggingFace
 embedding = HuggingFaceEmbeddings(
@@ -178,3 +192,72 @@ def get_pdf_document(filename: str):
         raise HTTPException(status_code=404, detail="Document not found")
 
     return FileResponse(file_path, media_type="application/pdf", filename=filename)
+
+@app.put("/docs", response_model=UploadResponse)
+def put_pdf(file: UploadFile = File(...)):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="You can only upload PDF files")
+
+    filename = file.filename
+    file_path = os.path.join(DOCS_FOLDER, filename)
+
+    # If the file exists, delete the old file and its chunks from the vector database
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        source_path = os.path.join(DOCS_FOLDER, filename)
+        vectordb._collection.delete(where={"source": source_path})
+
+    # Save the new file
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    # Load and chunk the new PDF
+    loader = PyPDFLoader(file_path)
+    pages = loader.load()
+
+    # Order pages and prepare for chunking
+    sorted_pages = sorted(pages, key=lambda x: x.metadata["page"])
+    total_pages = len(sorted_pages)
+    start = 0
+    split_docs = []
+
+    while start < total_pages:
+        end = start + CHUNK_SIZE_PAGES
+        chunk_pages = sorted_pages[start:end]
+
+        # Combine text and metadata
+        combined_text = "\n\n".join([p.page_content for p in chunk_pages])
+        metadata = {
+            "source": file_path,
+            "start_page": chunk_pages[0].metadata["page"],
+            "end_page": chunk_pages[-1].metadata["page"],
+            "total_chunk_pages": len(chunk_pages)
+        }
+        split_docs.append(Document(page_content=combined_text, metadata=metadata))
+        start += (CHUNK_SIZE_PAGES - CHUNK_OVERLAP_PAGES)
+
+    # Add chunk-specific metadata
+    for idx, chunk in enumerate(split_docs):
+        chunk.metadata.update({"chunk_id": idx, "chunk_length": len(chunk.page_content)})
+
+    vectordb.add_documents(split_docs)
+
+    return UploadResponse(filename=filename, message="PDF uploaded and vectorized successfully")
+
+@app.delete("/docs/{filename}", response_model=DeleteResponse)
+def delete_pdf(filename: str):
+    if ".." in filename or filename.startswith("/") or not filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    file_path = os.path.join(DOCS_FOLDER, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    os.remove(file_path)
+
+    # Remove vectors related to the document
+    source_path = os.path.join(DOCS_FOLDER, filename)
+    vectordb._collection.delete(where={"source": source_path})
+
+    return DeleteResponse(message=f"PDF and chunks deleted for: {filename}")
