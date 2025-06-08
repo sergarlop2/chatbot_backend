@@ -3,29 +3,21 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 import torch
+import os
 
-#EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
-#EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
-#EMBEDDING_MODEL_NAME = "sentence-transformers/paraphrase-mpnet-base-v2"
-#EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-#EMBEDDING_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-#EMBEDDING_MODEL_NAME = "jinaai/jina-embeddings-v2-base-es" # buen calculo en español, requiere trust remote code
+DOCS_DIR = "docs/"
 PERSIST_DIR = "docs/chroma/"
 CHUNK_SIZE_PAGES = 5 # Number of pages per chunk
 CHUNK_OVERLAP_PAGES = int(0.2 * CHUNK_SIZE_PAGES) # 20% overlap
 
+# Get pdf files from the docs directory
+pdf_files = [os.path.join(DOCS_DIR, f) for f in os.listdir(DOCS_DIR) if f.endswith(".pdf")]
+
 # Load PDFs
-loaders = [
-    PyPDFLoader("docs/DigComSCCI_processed.pdf"),
-    PyPDFLoader("docs/SCCIModulation_processed.pdf"),
-    PyPDFLoader("docs/Unit3.SelectiveCh_processed.pdf"),
-    PyPDFLoader("docs/ChannelSCCI_processed.pdf"),
-    PyPDFLoader("docs/SCCIdiversity_processed.pdf")
-    #PyPDFLoader("docs/07-Modulaciones y constelaciones-guion.pdf")
-]
 docs = []
-for loader in loaders:
+for pdf_file in pdf_files:
+    loader = PyPDFLoader(pdf_file)
     docs.extend(loader.load())
 
 # Group pages by source document
