@@ -102,7 +102,7 @@ llm_pipe = pipeline(
 hf_pipeline = HuggingFacePipeline(pipeline=llm_pipe)
 
 # Initialize FastAPI app and enable CORS
-app = FastAPI()
+app = FastAPI(docs_url="/swagger", redoc_url="/redoc")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -180,6 +180,17 @@ def create_completion(request: ChatRequest):
         response["sources"] = [doc.metadata for doc in docs]
    
     return response
+
+@app.get("/docs")
+def list_documents():
+    try:
+        files = [
+            f for f in os.listdir(DOCS_FOLDER)
+            if os.path.isfile(os.path.join(DOCS_FOLDER, f)) and f.lower().endswith(".pdf")
+        ]
+        return {"docs": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Could not list documents")
 
 @app.get("/docs/{filename}")
 def get_pdf_document(filename: str):
