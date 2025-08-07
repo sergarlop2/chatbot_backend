@@ -19,8 +19,8 @@ from typing import List, Optional
 
 torch.manual_seed(42)
 
-# Read local .env file
-_ = load_dotenv(find_dotenv()) 
+# Read env variables
+# _ = load_dotenv(find_dotenv()) 
 HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 DOCS_FOLDER = "docs/"

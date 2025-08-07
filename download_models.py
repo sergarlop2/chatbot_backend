@@ -7,7 +7,7 @@ import torch
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
 LLAMA_MODEL_NAME = "meta-llama/Llama-3.1-8B-Instruct"
 
-_ = load_dotenv(find_dotenv()) 
+#_ = load_dotenv(find_dotenv()) 
 HF_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 embedding = HuggingFaceEmbeddings(

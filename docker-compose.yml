@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  chatbot_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HUGGINGFACEHUB_API_TOKEN: ${HUGGINGFACEHUB_API_TOKEN}
+    container_name: chatbot_api
+    image: sergarlop2/chatbot_api:1.0
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Volume config to persist docs data
+    volumes:
+      - chatbot_docs:/app/docs
+
+volumes:
+  chatbot_docs:
+    name: chatbot_docs

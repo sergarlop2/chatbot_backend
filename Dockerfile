@@ -1,5 +1,8 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
+ARG HUGGINGFACEHUB_API_TOKEN
+ENV HUGGINGFACEHUB_API_TOKEN=$HUGGINGFACEHUB_API_TOKEN
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -15,7 +18,6 @@ COPY app.py .
 COPY download_models.py .
 COPY load_docs.py .
 COPY docs ./docs
-COPY .env .
 
 RUN python3 download_models.py \
     && python3 load_docs.py \ 
@@ -23,4 +25,4 @@ RUN python3 download_models.py \
 
 EXPOSE 5000
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["sh", "-c", "uvicorn app:app --host ${CHATBOT_API_HOST:-0.0.0.0} --port ${CHATBOT_API_PORT:-5000}"]
