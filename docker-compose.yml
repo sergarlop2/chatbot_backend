@@ -1,16 +1,16 @@
 version: "3.8"
 
 services:
-  chatbot_api:
+  chatbot_backend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         HUGGINGFACEHUB_API_TOKEN: ${HUGGINGFACEHUB_API_TOKEN}
-    container_name: chatbot_api
-    image: sergarlop2/chatbot_api:1.0
+    container_name: chatbot_backend
+    image: sergarlop2/chatbot_backend:1.0
     ports:
-      - "5000:5000"
+      - "${CHATBOT_API_PORT}:${CHATBOT_API_PORT}"
     env_file:
       - .env
     restart: unless-stopped
