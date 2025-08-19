@@ -111,17 +111,36 @@ app.add_middleware(
 )
 
 # Endpoints
-@app.get("/models")
+@app.get(
+    "/models",  
+    tags=["Models"],
+    summary="List available models",
+    description="Returns a list of available language models that can be used to generate responses."
+    )
 def list_models():
     return {"object": "list", "data": list(CHAT_MODELS.values())}
 
-@app.get("/models/{model_id}")
+@app.get(
+    "/models/{model_id}",
+    tags=["Models"],
+    summary="Get model details",
+    description="Returns the metadata of a specific model."
+    )
 def get_model(model_id: str):
     if model_id not in CHAT_MODELS:
         raise HTTPException(status_code=404, detail="Model not found")
     return CHAT_MODELS[model_id]
 
-@app.post("/chat/completions")
+@app.post(
+    "/chat/completions",
+    tags=["Chat"],
+    summary="Send messages to the language model",
+    description="""
+        Generates a response from the language model based on the provided messages.
+        If `use_rag` is set to True, a search is performed in a vector database to provide additional
+        context in the prompt.
+    """
+    )
 def create_completion(request: ChatRequest):
     if request.model not in CHAT_MODELS:
         raise HTTPException(status_code=400, detail="Unsupported model")
@@ -180,7 +199,12 @@ def create_completion(request: ChatRequest):
    
     return response
 
-@app.get("/docs")
+@app.get(
+    "/docs",
+    tags=["Documents"],
+    summary="List stored PDF documents",
+    description="Returns the list of PDF documents stored in the RAG system."
+    )
 def list_documents():
     try:
         files = [
@@ -191,7 +215,12 @@ def list_documents():
     except Exception as e:
         raise HTTPException(status_code=500, detail="Could not list documents")
 
-@app.get("/docs/{filename}")
+@app.get(
+    "/docs/{filename}",
+    tags=["Documents"],
+    summary="Get a PDF document",
+    description="Returns the requested PDF document if it exists in the RAG system."
+    )
 def get_pdf_document(filename: str):
     if ".." in filename or filename.startswith("/"):
         raise HTTPException(status_code=400, detail="Invalid filename")
@@ -203,7 +232,16 @@ def get_pdf_document(filename: str):
 
     return FileResponse(file_path, media_type="application/pdf", filename=filename)
 
-@app.put("/docs", response_model=UploadResponse)
+@app.put(
+    "/docs", 
+    response_model=UploadResponse,
+    tags=["Documents"],
+    summary="Upload and vectorize a PDF document",
+    description="""
+        Uploads a PDF document, splits it into chunks, and stores it in the vector database 
+        of the RAG system.
+    """
+    )
 def put_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="You can only upload PDF files")
@@ -254,7 +292,16 @@ def put_pdf(file: UploadFile = File(...)):
 
     return UploadResponse(filename=filename, message="PDF uploaded and vectorized successfully")
 
-@app.delete("/docs/{filename}", response_model=DeleteResponse)
+@app.delete(
+    "/docs/{filename}", 
+    response_model=DeleteResponse,
+    tags=["Documents"],
+    summary="Delete a PDF document and its vectors",
+    description="""
+        Deletes a PDF document along with its associated chunks stored in the vector database
+        of the RAG system.
+    """
+    )
 def delete_pdf(filename: str):
     if ".." in filename or filename.startswith("/") or not filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Invalid filename")
