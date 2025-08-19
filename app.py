@@ -48,7 +48,6 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     model: str
     messages: List[Message]
-    stream: Optional[bool] = False
     use_rag: Optional[bool] = False
 
 class UploadResponse(BaseModel):
