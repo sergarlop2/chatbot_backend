@@ -6,7 +6,7 @@ import seaborn as sns
 EVAL_DATASET = "datasets/eval_dataset.csv"
 
 # Load eval CSV
-df = pd.read_csv(EVAL_DATASET, sep=";")
+df = pd.read_csv(EVAL_DATASET)
 
 # Global accuracy
 accuracy = df["is_correct"].mean()
