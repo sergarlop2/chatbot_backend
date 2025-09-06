@@ -65,6 +65,14 @@ plt.grid(axis="y", linestyle="--", alpha=0.7)
 for bar, acc in zip(bars, topic_accuracy.values):
     plt.text(bar.get_x() + bar.get_width()/2, acc + 0.02, f"{acc:.2f}", ha="center", va="bottom", fontsize=10)
 
+# Add global accuracy
+plt.text(
+    0.99, 0.98,  # position
+    f"Global accuracy: {accuracy:.4f}",
+    ha="right", va="top", fontsize=12, weight="bold",
+    transform=plt.gca().transAxes,
+)
+
 plt.tight_layout()
 plt.show()
 
